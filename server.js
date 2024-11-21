@@ -17,6 +17,10 @@ app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 const { generateToken, verifyToken } = require('./utils/jwt');
 
+
+
+const Tracking = require('./models/Tracking');
+
 //login to generate jwt token
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
@@ -30,23 +34,61 @@ app.post('/login', (req, res) => {
 });
 
 //track order based on order id
-app.get('/tracking/:orderId',  async (req, res) => {
-    try {
-      const { orderId } = req.params;
-      const trackingData = await Tracking.findOne({ orderId });
-  
-      if (!trackingData) {
-        return res.status(404).send('Tracking data not found');
-      }
-  
-      res.json(trackingData);
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Error fetching tracking data');
-    }
-  });
+const axios = require('axios'); // Import axios for making API calls
 
-  const Tracking = require('./models/Tracking');
+app.get('/tracking/details/:orderId', verifyToken, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    // Step 1: Fetch tracking details from MongoDB
+    const trackingDetails = await Tracking.findOne({ orderId });
+    if (!trackingDetails) {
+      return res.status(404).send('Tracking details not found for the given orderId');
+    }
+
+    // Step 2: Fetch order details from Order Microservice
+    const orderResponse = await axios.get(`http://localhost:3001/api/orders/${orderId}`); // Update with actual Order Microservice URL
+    const orderData = orderResponse.data;
+
+    // Step 3: Fetch user details from User Microservice
+    const userResponse = await axios.get(`http://localhost:3002/user/${orderData.userId}`); // Update with actual User Microservice URL
+    const userData = userResponse.data;
+
+    // Step 4: Fetch user address from User Microservice
+    const addressResponse = await axios.get(
+      `http://localhost:3002/user/${orderData.userId}/address/${orderData.addressId}`
+    ); // Update with actual User Microservice URL
+    const addressData = addressResponse.data;
+
+    // Step 5: Fetch product details from Product Microservice
+    const productResponse = await axios.get(
+      `http://localhost:3003/products/${orderData.productId}`
+    ); // Update with actual Product Microservice URL
+    const productData = productResponse.data;
+
+    // Step 6: Combine all details into one response
+    const responseData = {
+      trackingDetails,
+      orderDetails: orderData,
+      userDetails: userData,
+      address: addressData,
+      productDetails: productData,
+    };
+
+    // Send the combined data as response
+    res.json(responseData);
+  } catch (err) {
+    console.error(err.message);
+
+    // Handle specific errors
+    if (err.response) {
+      res.status(err.response.status).send(err.response.data);
+    } else {
+      res.status(500).send('An error occurred while fetching tracking details');
+    }
+  }
+});
+
 
   //create tracking data
   app.post('/tracking',  async (req, res) => {
