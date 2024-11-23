@@ -47,22 +47,22 @@ app.get('/tracking/details/:orderId', verifyToken, async (req, res) => {
     }
 
     // Step 2: Fetch order details from Order Microservice
-    const orderResponse = await axios.get(`http://localhost:3001/api/orders/${orderId}`); // Update with actual Order Microservice URL
+    const orderResponse = await axios.get(`http://localhost:5000/order/${orderId}`); // Update with actual Order Microservice URL
     const orderData = orderResponse.data;
 
     // Step 3: Fetch user details from User Microservice
-    const userResponse = await axios.get(`http://localhost:3002/user/${orderData.userId}`); // Update with actual User Microservice URL
+    const userResponse = await axios.get(`http://localhost:5000/user/${orderData.userId}`); // Update with actual User Microservice URL
     const userData = userResponse.data;
 
     // Step 4: Fetch user address from User Microservice
     const addressResponse = await axios.get(
-      `http://localhost:3002/user/${orderData.userId}/address/${orderData.addressId}`
+      `http://localhost:5000/user/${orderData.userId}/address/${orderData.addressId}`
     ); // Update with actual User Microservice URL
     const addressData = addressResponse.data;
 
     // Step 5: Fetch product details from Product Microservice
     const productResponse = await axios.get(
-      `http://localhost:3003/products/${orderData.productId}`
+      `http://localhost:5000/product/${orderData.productId}`
     ); // Update with actual Product Microservice URL
     const productData = productResponse.data;
 
